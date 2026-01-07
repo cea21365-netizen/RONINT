@@ -17,7 +17,7 @@ local dashTime = 0.22
 local isDashing = false 
 local undergroundDepth = -30 
 local lastSafeCFrame = CFrame.new(0, 10, 0)
-local maxAutoUpDistance = 25 -- UPDATED: Teleport limit set to 25 studs
+local maxAutoUpDistance = 25 
 
 -- [[ DYNAMIC CAPTURE SYSTEM ]] --
 local originalGravity = workspace.Gravity
@@ -41,61 +41,78 @@ ScreenGui.Name = "RONINT_OVERLAY"
 ScreenGui.DisplayOrder = 2147483647 
 ScreenGui.IgnoreGuiInset = true 
 
+-- Enlarged Main Frame
 local Main = Instance.new("Frame", ScreenGui)
-Main.Size, Main.Position = UDim2.new(0, 200, 0, 300), UDim2.new(0.5, -100, 0.4, 0)
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Main.Active = true; Main.Draggable = true
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+Main.Size, Main.Position = UDim2.new(0, 240, 0, 360), UDim2.new(0.5, -120, 0.4, 0)
+Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Main.Active = true; Main.Draggable = true
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 15)
+Instance.new("UIStroke", Main).Color = Color3.fromRGB(40, 40, 40)
 
 local Header = Instance.new("Frame", Main)
-Header.Size, Header.Position = UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0, 0)
-Header.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 12)
-local Cover = Instance.new("Frame", Header)
-Cover.Size, Cover.Position = UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 0, 0.5, 0)
-Cover.BackgroundColor3 = Header.BackgroundColor3; Cover.BorderSizePixel = 0
+Header.Size, Header.Position = UDim2.new(1, 0, 0, 40), UDim2.new(0, 0, 0, 0)
+Header.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 15)
 
-local Title = Instance.new("TextLabel", Header)
-Title.Size, Title.Text = UDim2.new(1, 0, 1, 0), "RONINT"
-Title.TextColor3, Title.BackgroundTransparency = Color3.new(1, 1, 1), 1
-Title.Font, Title.TextSize = Enum.Font.GothamBold, 16
+-- Custom Colored Title "RONINT"
+local titleContainer = Instance.new("Frame", Header)
+titleContainer.Size = UDim2.new(1, 0, 1, 0); titleContainer.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", titleContainer)
+layout.FillDirection = Enum.FillDirection.Horizontal
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Center
+layout.Padding = UDim.new(0, 2)
+
+local function addLetter(char, color)
+    local l = Instance.new("TextLabel", titleContainer)
+    l.Text = char; l.TextColor3 = color; l.Font = Enum.Font.GothamBold; l.TextSize = 24
+    l.BackgroundTransparency = 1; l.Size = UDim2.new(0, 22, 1, 0)
+end
+
+addLetter("R", Color3.fromRGB(255, 0, 0))      -- Red
+addLetter("O", Color3.fromRGB(255, 127, 0))    -- Orange
+addLetter("N", Color3.fromRGB(57, 255, 20))    -- Neon Green
+addLetter("I", Color3.fromRGB(255, 255, 240))  -- Ivory
+addLetter("N", Color3.fromRGB(57, 255, 20))    -- Neon Green
+addLetter("T", Color3.fromRGB(64, 224, 208))   -- Turquoise
 
 local SideToggle = Instance.new("TextButton", ScreenGui)
-SideToggle.Size = UDim2.new(0, 60, 0, 60)
-SideToggle.Position = UDim2.new(1, -70, 0.5, -30)
-SideToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+SideToggle.Size = UDim2.new(0, 70, 0, 70)
+SideToggle.Position = UDim2.new(1, -80, 0.5, -35)
+SideToggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 SideToggle.Text, SideToggle.TextColor3, SideToggle.Font = "CLOSE", Color3.new(1, 1, 1), Enum.Font.GothamBold
-SideToggle.ZIndex = 10 
-Instance.new("UICorner", SideToggle).CornerRadius = UDim.new(0, 15)
-Instance.new("UIStroke", SideToggle).Thickness = 2 
+SideToggle.TextSize = 14; SideToggle.ZIndex = 10 
+Instance.new("UICorner", SideToggle).CornerRadius = UDim.new(0, 20)
+Instance.new("UIStroke", SideToggle).Thickness = 3; Instance.new("UIStroke", SideToggle).Color = Color3.fromRGB(0, 120, 255)
 
 SideToggle.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
     SideToggle.Text = Main.Visible and "CLOSE" or "OPEN"
-    SideToggle.BackgroundColor3 = Main.Visible and Color3.fromRGB(60, 60, 60) or Color3.fromRGB(0, 0, 0)
 end)
 
 local function createBtn(text, pos, color)
     local b = Instance.new("TextButton", Main)
-    b.Size, b.Position = UDim2.new(0.85, 0, 0, 28), pos
+    b.Size, b.Position = UDim2.new(0.9, 0, 0, 35), pos
     b.Text, b.BackgroundColor3 = text, color
     b.TextColor3, b.Font = Color3.new(1, 1, 1), Enum.Font.GothamBold
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.TextSize = 14
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
     return b
 end
 
-local Toggle = createBtn("STATUS: ACTIVE", UDim2.new(0.075, 0, 0.13, 0), Color3.fromRGB(0, 170, 0))
-local AVToggle = createBtn("SAFE MODE: ON", UDim2.new(0.075, 0, 0.24, 0), Color3.fromRGB(0, 170, 0))
-local AUToggle = createBtn("AUTO-UP: ON", UDim2.new(0.075, 0, 0.35, 0), Color3.fromRGB(0, 170, 0))
-local SFToggle = createBtn("SLOW FALL: ON", UDim2.new(0.075, 0, 0.46, 0), Color3.fromRGB(0, 170, 0))
+local Toggle = createBtn("STATUS: ACTIVE", UDim2.new(0.05, 0, 0.15, 0), Color3.fromRGB(0, 170, 0))
+local AVToggle = createBtn("SAFE MODE: ON", UDim2.new(0.05, 0, 0.27, 0), Color3.fromRGB(0, 170, 0))
+local AUToggle = createBtn("AUTO-UP: ON", UDim2.new(0.05, 0, 0.39, 0), Color3.fromRGB(0, 170, 0))
+local SFToggle = createBtn("SLOW FALL: ON", UDim2.new(0.05, 0, 0.51, 0), Color3.fromRGB(0, 170, 0))
 
 local Label = Instance.new("TextLabel", Main)
-Label.Size, Label.Position, Label.Text = UDim2.new(1, 0, 0, 25), UDim2.new(0, 0, 0.58, 0), "Dist: " .. dashDist
-Label.TextColor3, Label.BackgroundTransparency = Color3.new(1, 1, 1), 1
+Label.Size, Label.Position, Label.Text = UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0.65, 0), "Glide Distance: " .. dashDist
+Label.TextColor3, Label.BackgroundTransparency, Label.Font = Color3.new(1, 1, 1), 1, Enum.Font.GothamBold
 
-local Minus = createBtn("-", UDim2.new(0.15, 0, 0.72, 0), Color3.fromRGB(60, 60, 60))
-Minus.Size = UDim2.new(0, 45, 0, 45)
-local Plus = createBtn("+", UDim2.new(0.65, 0, 0.72, 0), Color3.fromRGB(60, 60, 60))
-Plus.Size = UDim2.new(0, 45, 0, 45)
+local Minus = createBtn("-", UDim2.new(0.15, 0, 0.78, 0), Color3.fromRGB(40, 40, 40))
+Minus.Size = UDim2.new(0, 55, 0, 55); Minus.TextSize = 30
+local Plus = createBtn("+", UDim2.new(0.6, 0, 0.78, 0), Color3.fromRGB(40, 40, 40))
+Plus.Size = UDim2.new(0, 55, 0, 55); Plus.TextSize = 30
 
 -- Logic
 Toggle.MouseButton1Click:Connect(function()
@@ -129,8 +146,8 @@ SFToggle.MouseButton1Click:Connect(function()
     SFToggle.BackgroundColor3 = slowFall and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
 end)
 
-Minus.MouseButton1Click:Connect(function() dashDist = math.max(0, dashDist - 5) Label.Text = "Dist: " .. dashDist end)
-Plus.MouseButton1Click:Connect(function() dashDist = dashDist + 5 Label.Text = "Dist: " .. dashDist end)
+Minus.MouseButton1Click:Connect(function() dashDist = math.max(0, dashDist - 5) Label.Text = "Glide Distance: " .. dashDist end)
+Plus.MouseButton1Click:Connect(function() dashDist = dashDist + 5 Label.Text = "Glide Distance: " .. dashDist end)
 
 -- [[ SLOW FALL LOGIC ]] --
 RunService.Heartbeat:Connect(function()
@@ -152,7 +169,6 @@ RunService.PostSimulation:Connect(function()
 
     local rayParam = RaycastParams.new()
     rayParam.FilterDescendantsInstances = {char}
-    
     local forwardPos = root.Position + (hum.MoveDirection * 4)
     
     local function checkPoint(pos)
@@ -163,18 +179,12 @@ RunService.PostSimulation:Connect(function()
         return nil
     end
 
-    local p1 = checkPoint(forwardPos)
-    local p2 = checkPoint(forwardPos + Vector3.new(2, 0, 0))
-    local p3 = checkPoint(forwardPos + Vector3.new(-2, 0, 0))
-    local p4 = checkPoint(forwardPos + Vector3.new(0, 0, 2))
-    local p5 = checkPoint(forwardPos + Vector3.new(0, 0, -2))
+    local p1, p2, p3, p4, p5 = checkPoint(forwardPos), checkPoint(forwardPos + Vector3.new(2,0,0)), checkPoint(forwardPos + Vector3.new(-2,0,0)), checkPoint(forwardPos + Vector3.new(0,0,2)), checkPoint(forwardPos + Vector3.new(0,0,-2))
 
     if p1 and p2 and p3 and p4 and p5 then
         root.CFrame = CFrame.new(root.Position.X, p1.Position.Y + 3.5, root.Position.Z) * root.CFrame.Rotation
         for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Transparency = (part.Name == "HumanoidRootPart") and 1 or 0
-            end
+            if part:IsA("BasePart") then part.Transparency = (part.Name == "HumanoidRootPart") and 1 or 0 end
         end
     end
 end)
@@ -186,12 +196,8 @@ local function doDash()
     local hum = char and char:FindFirstChild("Humanoid")
     if not root or not hum or not enabled or isDashing then return end
     isDashing = true
-    
-    local moveDir = hum.MoveDirection
-    if moveDir.Magnitude == 0 then moveDir = root.CFrame.LookVector end
-    local rayParam = RaycastParams.new()
-    rayParam.FilterDescendantsInstances = {char}
-    
+    local moveDir = (hum.MoveDirection.Magnitude > 0) and hum.MoveDirection or root.CFrame.LookVector
+    local rayParam = RaycastParams.new(); rayParam.FilterDescendantsInstances = {char}
     local floorRay = workspace:Raycast(root.Position - Vector3.new(0, 2, 0), Vector3.new(0, -250, 0), rayParam)
     local groundLevelY = floorRay and floorRay.Position.Y or root.Position.Y
     local targetPosition = Vector3.new(root.Position.X + (moveDir.X * dashDist), groundLevelY + undergroundDepth, root.Position.Z + (moveDir.Z * dashDist))
@@ -216,21 +222,15 @@ local function doDash()
     glide.Completed:Connect(function()
         connection:Disconnect()
         local scanRay = workspace:Raycast(root.Position + Vector3.new(0, 500, 0), Vector3.new(0, -600, 0), rayParam)
-        
-        if antiVoid and not scanRay then
-            root.CFrame = lastSafeCFrame + Vector3.new(0, 3, 0)
+        if antiVoid and not scanRay then root.CFrame = lastSafeCFrame + Vector3.new(0, 3, 0)
         else
             local finalY = scanRay and scanRay.Position.Y or groundLevelY
             root.CFrame = CFrame.new(root.Position.X, finalY + 3, root.Position.Z) * root.CFrame.Rotation
         end
-        
         workspace.Gravity = enabled and 2500 or originalGravity
         hum:ChangeState(Enum.HumanoidStateType.Running)
         for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-                part.Transparency = (part.Name == "HumanoidRootPart") and 1 or 0
-            end
+            if part:IsA("BasePart") then part.CanCollide = true; part.Transparency = (part.Name == "HumanoidRootPart") and 1 or 0 end
         end
         isDashing = false 
     end)
@@ -239,19 +239,13 @@ end
 UIS.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.Space then
         task.spawn(function()
-            while UIS:IsKeyDown(Enum.KeyCode.Space) and enabled do
-                doDash()
-                task.wait(dashTime - 0.02) 
-            end
+            while UIS:IsKeyDown(Enum.KeyCode.Space) and enabled do doDash() task.wait(dashTime - 0.02) end
         end)
     end
 end)
-
 UIS.JumpRequest:Connect(function() if not UIS:IsKeyDown(Enum.KeyCode.Space) then doDash() end end)
-
 RunService.Heartbeat:Connect(function()
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart")
     if root and not isDashing then
         local ray = workspace:Raycast(root.Position, Vector3.new(0, -30, 0))
         if ray then lastSafeCFrame = root.CFrame end
