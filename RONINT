@@ -1,0 +1,237 @@
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local player = game.Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
+local TS = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local camera = workspace.CurrentCamera
+
+-- Variables
+local enabled = true
+local antiVoid = true 
+local dashDist = 35
+local dashTime = 0.22 
+local isDashing = false 
+local undergroundDepth = -30 
+local lastSafeCFrame = CFrame.new(0, 10, 0)
+
+-- [[ DYNAMIC CAPTURE SYSTEM ]] --
+local originalGravity = workspace.Gravity
+local originalJumpValue = 50
+local usesPower = true 
+local originalHipHeight = 0
+
+local function captureOriginals()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hum = char:WaitForChild("Humanoid")
+    originalGravity = workspace.Gravity
+    usesPower = hum.UseJumpPower
+    originalJumpValue = usesPower and hum.JumpPower or hum.JumpHeight
+    originalHipHeight = hum.HipHeight
+end
+captureOriginals()
+
+-- [[ GUI SECTION ]] --
+local ScreenGui = Instance.new("ScreenGui", CoreGui); ScreenGui.Name = "SmoothSurfUI"
+
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size, Main.Position = UDim2.new(0, 200, 0, 220), UDim2.new(0.5, -100, 0.7, 0)
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Main.Active = true; Main.Draggable = true
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+
+-- RONINT HEADER
+local Header = Instance.new("Frame", Main)
+Header.Size, Header.Position = UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0, 0)
+Header.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+local HeaderCorner = Instance.new("UICorner", Header)
+HeaderCorner.CornerRadius = UDim.new(0, 12)
+
+local Cover = Instance.new("Frame", Header)
+Cover.Size, Cover.Position = UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 0, 0.5, 0)
+Cover.BackgroundColor3 = Header.BackgroundColor3
+Cover.BorderSizePixel = 0
+
+local Title = Instance.new("TextLabel", Header)
+Title.Size, Title.Text = UDim2.new(1, 0, 1, 0), "RONINT"
+Title.TextColor3, Title.BackgroundTransparency = Color3.new(1, 1, 1), 1
+Title.Font, Title.TextSize = Enum.Font.GothamBold, 16
+
+-- SIDE TOGGLE BUTTON
+local SideToggle = Instance.new("TextButton", ScreenGui)
+SideToggle.Size, SideToggle.Position = UDim2.new(0, 40, 0, 40), UDim2.new(1, -50, 0.5, -20)
+SideToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+SideToggle.Text, SideToggle.TextColor3, SideToggle.Font = "G", Color3.new(1, 1, 1), Enum.Font.GothamBold
+Instance.new("UICorner", SideToggle).CornerRadius = UDim.new(0, 10)
+
+SideToggle.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
+    SideToggle.BackgroundColor3 = Main.Visible and Color3.fromRGB(60, 60, 60) or Color3.fromRGB(0, 0, 0)
+end)
+
+-- CONTROLS
+local Toggle = Instance.new("TextButton", Main)
+Toggle.Size, Toggle.Position = UDim2.new(0.8, 0, 0, 30), UDim2.new(0.1, 0, 0.18, 0)
+Toggle.Text, Toggle.BackgroundColor3 = "STATUS: ACTIVE", Color3.fromRGB(0, 170, 0)
+Toggle.TextColor3, Toggle.Font = Color3.new(1, 1, 1), Enum.Font.GothamBold
+Instance.new("UICorner", Toggle).CornerRadius = UDim.new(0, 8)
+
+local AVToggle = Instance.new("TextButton", Main)
+AVToggle.Size, AVToggle.Position = UDim2.new(0.8, 0, 0, 30), UDim2.new(0.1, 0, 0.35, 0)
+AVToggle.Text, AVToggle.BackgroundColor3 = "SAFE MODE: ON", Color3.fromRGB(0, 170, 0)
+AVToggle.TextColor3, AVToggle.Font = Color3.new(1, 1, 1), Enum.Font.GothamBold
+Instance.new("UICorner", AVToggle).CornerRadius = UDim.new(0, 8)
+
+local Label = Instance.new("TextLabel", Main)
+Label.Size, Label.Position, Label.Text = UDim2.new(1, 0, 0, 25), UDim2.new(0, 0, 0.52, 0), "Dist: " .. dashDist
+Label.TextColor3, Label.BackgroundTransparency = Color3.new(1, 1, 1), 1
+
+local Minus = Instance.new("TextButton", Main)
+Minus.Size, Minus.Position, Minus.Text = UDim2.new(0, 45, 0, 45), UDim2.new(0.15, 0, 0.7, 0), "-"
+Minus.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Minus.TextColor3, Minus.Font = Color3.new(1, 1, 1), Enum.Font.GothamBold
+Instance.new("UICorner", Minus).CornerRadius = UDim.new(0, 12)
+
+local Plus = Instance.new("TextButton", Main)
+Plus.Size, Plus.Position, Plus.Text = UDim2.new(0, 45, 0, 45), UDim2.new(0.65, 0, 0.7, 0), "+"
+Plus.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Plus.TextColor3, Plus.Font = Color3.new(1, 1, 1), Enum.Font.GothamBold
+Instance.new("UICorner", Plus).CornerRadius = UDim.new(0, 12)
+
+-- [[ ACTION LOGIC ]] --
+Toggle.MouseButton1Click:Connect(function()
+    enabled = not enabled
+    Toggle.Text = enabled and "STATUS: ACTIVE" or "STATUS: OFF"
+    Toggle.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
+    
+    if not enabled then
+        workspace.Gravity = originalGravity
+        local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+        if hum then
+            if usesPower then hum.JumpPower = originalJumpValue else hum.JumpHeight = originalJumpValue end
+            hum.HipHeight = originalHipHeight
+        end
+    end
+end)
+
+AVToggle.MouseButton1Click:Connect(function()
+    antiVoid = not antiVoid
+    AVToggle.Text = antiVoid and "SAFE MODE: ON" or "SAFE MODE: OFF"
+    AVToggle.BackgroundColor3 = antiVoid and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
+end)
+
+Minus.MouseButton1Click:Connect(function() dashDist = math.max(0, dashDist - 5) Label.Text = "Dist: " .. dashDist end)
+Plus.MouseButton1Click:Connect(function() dashDist = dashDist + 5 Label.Text = "Dist: " .. dashDist end)
+
+-- [[ SAFE POINT TRACKER ]] --
+RunService.Heartbeat:Connect(function()
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root and not isDashing then
+        local ray = workspace:Raycast(root.Position, Vector3.new(0, -30, 0))
+        if ray then lastSafeCFrame = root.CFrame end
+    end
+end)
+
+-- [[ ENGINE LOGIC ]] --
+task.spawn(function()
+    while task.wait(0.1) do
+        if enabled then
+            pcall(function() 
+                local hum = player.Character:FindFirstChild("Humanoid")
+                if hum.UseJumpPower then hum.JumpPower = 3 else hum.JumpHeight = 0.5 end
+            end)
+        end
+    end
+end)
+
+local function doDash()
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    if not root or not hum or not enabled or isDashing then return end
+    isDashing = true
+    local moveDir = hum.MoveDirection
+    if moveDir.Magnitude == 0 then moveDir = root.CFrame.LookVector end
+    local rayParam = RaycastParams.new()
+    rayParam.FilterDescendantsInstances = {char}
+    rayParam.FilterType = Enum.RaycastFilterType.Exclude
+    local floorRay = workspace:Raycast(root.Position + Vector3.new(0, 10, 0), Vector3.new(0, -500, 0), rayParam)
+    local groundLevelY = floorRay and floorRay.Position.Y or root.Position.Y
+    local targetPosition = Vector3.new(root.Position.X + (moveDir.X * dashDist), groundLevelY + undergroundDepth, root.Position.Z + (moveDir.Z * dashDist))
+    local targetCF = CFrame.new(targetPosition) * root.CFrame.Rotation
+    
+    local connection
+    connection = RunService.Stepped:Connect(function()
+        if char and root then
+            hum:ChangeState(Enum.HumanoidStateType.Physics)
+            hum.HipHeight = 0 
+            root.AssemblyLinearVelocity = Vector3.zero 
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then 
+                    part.CanCollide = false 
+                    if part.Name ~= "HumanoidRootPart" then part.Transparency = 0.5 end
+                end
+            end
+            camera.CameraSubject = nil
+            camera.Focus = CFrame.new(root.Position.X, groundLevelY, root.Position.Z)
+        else
+            connection:Disconnect()
+        end
+    end)
+    
+    hum.PlatformStand = true 
+    workspace.Gravity = 0 
+    local glide = TS:Create(root, TweenInfo.new(dashTime, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {CFrame = targetCF})
+    glide:Play()
+    
+    glide.Completed:Connect(function()
+        connection:Disconnect()
+        camera.CameraSubject = hum
+        hum.HipHeight = originalHipHeight
+        local endRay = workspace:Raycast(root.Position + Vector3.new(0, 40, 0), Vector3.new(0, -70, 0), rayParam)
+        
+        if antiVoid and not endRay then
+            root.CFrame = lastSafeCFrame + Vector3.new(0, 3, 0)
+            hum.PlatformStand = false
+            workspace.Gravity = enabled and 2500 or originalGravity
+            hum:ChangeState(Enum.HumanoidStateType.Running)
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                    part.Transparency = (part.Name == "HumanoidRootPart") and 1 or 0
+                end
+            end
+        elseif not UIS:IsKeyDown(Enum.KeyCode.Space) then
+            local finalY = endRay and endRay.Position.Y or groundLevelY
+            root.CFrame = CFrame.new(root.Position.X, finalY + 3, root.Position.Z) * root.CFrame.Rotation
+            hum.PlatformStand = false
+            workspace.Gravity = enabled and 2500 or originalGravity
+            hum:ChangeState(Enum.HumanoidStateType.Running)
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    if part.Name ~= "HumanoidRootPart" then part.CanCollide = true part.Transparency = 0 else part.Transparency = 1 end
+                end
+            end
+        end
+        isDashing = false 
+    end)
+end
+
+UIS.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.Space then
+        task.spawn(function()
+            while UIS:IsKeyDown(Enum.KeyCode.Space) and enabled do
+                doDash()
+                task.wait(dashTime - 0.02) 
+            end
+        end)
+    end
+end)
+
+UIS.JumpRequest:Connect(function()
+    if not UIS:IsKeyDown(Enum.KeyCode.Space) then
+        doDash()
+    end
+end)
