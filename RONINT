@@ -18,20 +18,6 @@ local undergroundDepth = -30
 local lastSafeCFrame = CFrame.new(0, 10, 0)
 local maxAutoUpDistance = 25 
 
--- [[ DYNAMIC CAPTURE SYSTEM ]] --
-local originalGravity = workspace.Gravity
-local originalJumpValue = 50
-local usesPower = true 
-
-local function captureOriginals()
-    local char = player.Character or player.CharacterAdded:Wait()
-    local hum = char:WaitForChild("Humanoid")
-    originalGravity = workspace.Gravity
-    usesPower = hum.UseJumpPower
-    originalJumpValue = usesPower and hum.JumpPower or hum.JumpHeight
-end
-captureOriginals()
-
 -- [[ GUI SECTION ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "RONINT_OVERLAY"
@@ -42,9 +28,14 @@ local Main = Instance.new("Frame", ScreenGui)
 Main.Size, Main.Position = UDim2.new(0, 240, 0, 360), UDim2.new(0.5, -120, 0.4, 0)
 Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Main.Active = true; Main.Draggable = true
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 15)
-Instance.new("UIStroke", Main).Color = Color3.fromRGB(40, 40, 40)
 
--- Header with White Border
+-- RAINBOW BORDER FOR MAIN GUI
+local MainRainbow = Instance.new("UIStroke", Main)
+MainRainbow.Thickness = 3
+MainRainbow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+MainRainbow.Transparency = 0 -- Starts visible
+
+-- Header
 local Header = Instance.new("Frame", Main)
 Header.Size, Header.Position = UDim2.new(1, 0, 0, 45), UDim2.new(0, 0, 0, 0)
 Header.BackgroundColor3 = Color3.fromRGB(0, 120, 255) 
@@ -52,29 +43,24 @@ Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 15)
 
 local HeaderBorder = Instance.new("UIStroke", Header)
 HeaderBorder.Thickness = 2
-HeaderBorder.Color = Color3.new(1, 1, 1) -- White Border
-HeaderBorder.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+HeaderBorder.Color = Color3.new(1, 1, 1) 
 
 local CornerFix = Instance.new("Frame", Header)
 CornerFix.Size, CornerFix.Position = UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 0, 0.5, 0)
 CornerFix.BackgroundColor3 = Header.BackgroundColor3; CornerFix.BorderSizePixel = 0
-CornerFix.ZIndex = 0
 
--- Custom Colored Title "RONINT" with Tightest Spacing
+-- Colored Title "RONINT"
 local titleContainer = Instance.new("Frame", Header)
 titleContainer.Size = UDim2.new(1, 0, 1, 0); titleContainer.BackgroundTransparency = 1
 local layout = Instance.new("UIListLayout", titleContainer)
-layout.FillDirection = Enum.FillDirection.Horizontal
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Center
-layout.Padding = UDim.new(0, -2) -- Overlapping letters for maximum closeness
+layout.FillDirection, layout.HorizontalAlignment, layout.VerticalAlignment = Enum.FillDirection.Horizontal, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Center
+layout.Padding = UDim.new(0, -2) 
 
 local function addLetter(char, color)
     local l = Instance.new("TextLabel", titleContainer)
-    l.Text = char; l.TextColor3 = color; l.Font = Enum.Font.GothamBold; l.TextSize = 28
-    l.BackgroundTransparency = 1; l.Size = UDim2.new(0, 18, 1, 0)
+    l.Text, l.TextColor3, l.Font, l.TextSize = char, color, Enum.Font.GothamBold, 28
+    l.BackgroundTransparency, l.Size = 1, UDim2.new(0, 18, 1, 0)
 end
-
 addLetter("R", Color3.fromRGB(255, 0, 0))      
 addLetter("O", Color3.fromRGB(255, 127, 0))    
 addLetter("N", Color3.fromRGB(57, 255, 20))    
@@ -82,26 +68,55 @@ addLetter("I", Color3.fromRGB(255, 255, 240))
 addLetter("N", Color3.fromRGB(57, 255, 20))    
 addLetter("T", Color3.fromRGB(64, 224, 208))   
 
+-- [[ SIDE TOGGLE ]] --
 local SideToggle = Instance.new("TextButton", ScreenGui)
-SideToggle.Size = UDim2.new(0, 70, 0, 70)
-SideToggle.Position = UDim2.new(1, -80, 0.5, -35)
-SideToggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-SideToggle.Text, SideToggle.TextColor3, SideToggle.Font = "CLOSE", Color3.new(1, 1, 1), Enum.Font.GothamBold
-SideToggle.TextSize = 14; SideToggle.ZIndex = 10 
+SideToggle.Size, SideToggle.Position = UDim2.new(0, 70, 0, 70), UDim2.new(1, -80, 0.5, -35)
+SideToggle.BackgroundColor3, SideToggle.TextColor3 = Color3.fromRGB(30, 30, 30), Color3.new(1, 1, 1)
+SideToggle.Text, SideToggle.Font, SideToggle.TextSize = "CLOSE", Enum.Font.GothamBold, 14
+SideToggle.ZIndex = 10 
 Instance.new("UICorner", SideToggle).CornerRadius = UDim.new(0, 20)
-local STStroke = Instance.new("UIStroke", SideToggle); STStroke.Thickness = 3; STStroke.Color = Color3.fromRGB(0, 120, 255)
+
+local STStroke = Instance.new("UIStroke", SideToggle)
+STStroke.Thickness = 4
+STStroke.Color = Color3.fromRGB(255, 0, 0) 
 
 SideToggle.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
-    SideToggle.Text = Main.Visible and "CLOSE" or "OPEN"
+    if Main.Visible then
+        SideToggle.Text = "CLOSE"
+        STStroke.Color = Color3.fromRGB(255, 0, 0)
+    else
+        SideToggle.Text = "OPEN"
+        STStroke.Color = Color3.fromRGB(0, 255, 0)
+    end
 end)
 
+-- [[ RAINBOW & PULSE ANIMATION ]] --
+task.spawn(function()
+    local hue = 0
+    while true do
+        hue = hue + (1/300) -- Speed of color cycle
+        if hue > 1 then hue = 0 end
+        local rainbowColor = Color3.fromHSV(hue, 1, 1)
+        MainRainbow.Color = rainbowColor
+        
+        -- Pulsing Logic
+        if Main.Visible then
+            local pulse = (math.sin(tick() * 5) + 1) / 2 -- Range 0 to 1
+            MainRainbow.Transparency = pulse * 0.5 -- Pulses between 0 and 0.5 transparency
+        else
+            MainRainbow.Transparency = 1 -- Invisible when closed
+        end
+        RunService.RenderStepped:Wait()
+    end
+end)
+
+-- [[ BUTTON BUILDER ]] --
 local function createBtn(text, pos, color)
     local b = Instance.new("TextButton", Main)
     b.Size, b.Position = UDim2.new(0.9, 0, 0, 35), pos
     b.Text, b.BackgroundColor3 = text, color
-    b.TextColor3, b.Font = Color3.new(1, 1, 1), Enum.Font.GothamBold
-    b.TextSize = 14
+    b.TextColor3, b.Font, b.TextSize = Color3.new(1, 1, 1), Enum.Font.GothamBold, 14
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
     return b
 end
@@ -120,12 +135,12 @@ Minus.Size = UDim2.new(0, 55, 0, 55); Minus.TextSize = 30
 local Plus = createBtn("+", UDim2.new(0.6, 0, 0.80, 0), Color3.fromRGB(40, 40, 40))
 Plus.Size = UDim2.new(0, 55, 0, 55); Plus.TextSize = 30
 
--- Logic Handlers
+-- [[ FUNCTIONAL LOGIC ]] --
 Toggle.MouseButton1Click:Connect(function()
     enabled = not enabled
     Toggle.Text = enabled and "STATUS: ACTIVE" or "STATUS: OFF"
     Toggle.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
-    if not enabled then workspace.Gravity = originalGravity end
+    if not enabled then workspace.Gravity = 196.2 end
 end)
 
 AVToggle.MouseButton1Click:Connect(function()
@@ -149,10 +164,10 @@ end)
 Minus.MouseButton1Click:Connect(function() dashDist = math.max(0, dashDist - 5) Label.Text = "Glide Distance: " .. dashDist end)
 Plus.MouseButton1Click:Connect(function() dashDist = dashDist + 5 Label.Text = "Glide Distance: " .. dashDist end)
 
--- Feature Logic
+-- Feature Logic (Slow Fall & Auto Up)
 RunService.Heartbeat:Connect(function()
     if not slowFall or isDashing then return end
-    local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart")
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if root and root.AssemblyLinearVelocity.Y < -20 then 
         root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, -15, root.AssemblyLinearVelocity.Z)
     end
@@ -171,10 +186,10 @@ RunService.PostSimulation:Connect(function()
     local p1 = checkPoint(forwardPos)
     if p1 and checkPoint(forwardPos + Vector3.new(2,0,0)) and checkPoint(forwardPos + Vector3.new(-2,0,0)) then
         root.CFrame = CFrame.new(root.Position.X, p1.Position.Y + 3.5, root.Position.Z) * root.CFrame.Rotation
-        for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") then part.Transparency = (part.Name == "HumanoidRootPart") and 1 or 0 end end
     end
 end)
 
+-- Glide Engine
 local function doDash()
     local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart"); local hum = char and char:FindFirstChild("Humanoid")
     if not root or not hum or not enabled or isDashing then return end
@@ -182,15 +197,15 @@ local function doDash()
     local rayParam = RaycastParams.new(); rayParam.FilterDescendantsInstances = {char}
     local floorRay = workspace:Raycast(root.Position - Vector3.new(0, 2, 0), Vector3.new(0, -250, 0), rayParam)
     local targetPosition = Vector3.new(root.Position.X + (moveDir.X * dashDist), (floorRay and floorRay.Position.Y or root.Position.Y) + undergroundDepth, root.Position.Z + (moveDir.Z * dashDist))
-    local connection = RunService.Stepped:Connect(function()
+    local conn = RunService.Stepped:Connect(function()
         hum:ChangeState(Enum.HumanoidStateType.Physics); root.AssemblyLinearVelocity = Vector3.zero 
         for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false; if v.Name ~= "HumanoidRootPart" then v.Transparency = 0.5 end end end
     end)
     workspace.Gravity = 0; local glide = TS:Create(root, TweenInfo.new(dashTime, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {CFrame = CFrame.new(targetPosition) * root.CFrame.Rotation})
     glide:Play(); glide.Completed:Connect(function()
-        connection:Disconnect(); local scanRay = workspace:Raycast(root.Position + Vector3.new(0, 500, 0), Vector3.new(0, -600, 0), rayParam)
+        conn:Disconnect(); local scanRay = workspace:Raycast(root.Position + Vector3.new(0, 500, 0), Vector3.new(0, -600, 0), rayParam)
         root.CFrame = (antiVoid and not scanRay) and (lastSafeCFrame + Vector3.new(0, 3, 0)) or (CFrame.new(root.Position.X, (scanRay and scanRay.Position.Y or root.Position.Y) + 3, root.Position.Z) * root.CFrame.Rotation)
-        workspace.Gravity = enabled and 2500 or originalGravity; hum:ChangeState(Enum.HumanoidStateType.Running)
+        workspace.Gravity = enabled and 2500 or 196.2; hum:ChangeState(Enum.HumanoidStateType.Running)
         for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = true; v.Transparency = (v.Name == "HumanoidRootPart") and 1 or 0 end end
         isDashing = false 
     end)
