@@ -5,7 +5,6 @@ local UIS = game:GetService("UserInputService")
 local TS = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
-local camera = workspace.CurrentCamera
 
 -- Variables
 local enabled = true
@@ -23,7 +22,6 @@ local maxAutoUpDistance = 25
 local originalGravity = workspace.Gravity
 local originalJumpValue = 50
 local usesPower = true 
-local originalHipHeight = 0
 
 local function captureOriginals()
     local char = player.Character or player.CharacterAdded:Wait()
@@ -31,7 +29,6 @@ local function captureOriginals()
     originalGravity = workspace.Gravity
     usesPower = hum.UseJumpPower
     originalJumpValue = usesPower and hum.JumpPower or hum.JumpHeight
-    originalHipHeight = hum.HipHeight
 end
 captureOriginals()
 
@@ -41,40 +38,44 @@ ScreenGui.Name = "RONINT_OVERLAY"
 ScreenGui.DisplayOrder = 2147483647 
 ScreenGui.IgnoreGuiInset = true 
 
--- Enlarged Main Frame
 local Main = Instance.new("Frame", ScreenGui)
 Main.Size, Main.Position = UDim2.new(0, 240, 0, 360), UDim2.new(0.5, -120, 0.4, 0)
 Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Main.Active = true; Main.Draggable = true
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 15)
 Instance.new("UIStroke", Main).Color = Color3.fromRGB(40, 40, 40)
 
+-- Header with Blue Background
 local Header = Instance.new("Frame", Main)
-Header.Size, Header.Position = UDim2.new(1, 0, 0, 40), UDim2.new(0, 0, 0, 0)
-Header.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Header.Size, Header.Position = UDim2.new(1, 0, 0, 45), UDim2.new(0, 0, 0, 0)
+Header.BackgroundColor3 = Color3.fromRGB(0, 120, 255) -- Solid Blue Background
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 15)
 
--- Custom Colored Title "RONINT"
+-- Bottom corner fix for Header (makes only top rounded)
+local CornerFix = Instance.new("Frame", Header)
+CornerFix.Size, CornerFix.Position = UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 0, 0.5, 0)
+CornerFix.BackgroundColor3 = Header.BackgroundColor3; CornerFix.BorderSizePixel = 0
+
+-- Custom Colored Title "RONINT" with NO spacing
 local titleContainer = Instance.new("Frame", Header)
 titleContainer.Size = UDim2.new(1, 0, 1, 0); titleContainer.BackgroundTransparency = 1
-
 local layout = Instance.new("UIListLayout", titleContainer)
 layout.FillDirection = Enum.FillDirection.Horizontal
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Center
-layout.Padding = UDim.new(0, 2)
+layout.Padding = UDim.new(0, 0) -- No spacing between letters
 
 local function addLetter(char, color)
     local l = Instance.new("TextLabel", titleContainer)
-    l.Text = char; l.TextColor3 = color; l.Font = Enum.Font.GothamBold; l.TextSize = 24
-    l.BackgroundTransparency = 1; l.Size = UDim2.new(0, 22, 1, 0)
+    l.Text = char; l.TextColor3 = color; l.Font = Enum.Font.GothamBold; l.TextSize = 26
+    l.BackgroundTransparency = 1; l.Size = UDim2.new(0, 20, 1, 0)
 end
 
-addLetter("R", Color3.fromRGB(255, 0, 0))      -- Red
-addLetter("O", Color3.fromRGB(255, 127, 0))    -- Orange
-addLetter("N", Color3.fromRGB(57, 255, 20))    -- Neon Green
-addLetter("I", Color3.fromRGB(255, 255, 240))  -- Ivory
-addLetter("N", Color3.fromRGB(57, 255, 20))    -- Neon Green
-addLetter("T", Color3.fromRGB(64, 224, 208))   -- Turquoise
+addLetter("R", Color3.fromRGB(255, 0, 0))      
+addLetter("O", Color3.fromRGB(255, 127, 0))    
+addLetter("N", Color3.fromRGB(57, 255, 20))    
+addLetter("I", Color3.fromRGB(255, 255, 240))  
+addLetter("N", Color3.fromRGB(57, 255, 20))    
+addLetter("T", Color3.fromRGB(64, 224, 208))   
 
 local SideToggle = Instance.new("TextButton", ScreenGui)
 SideToggle.Size = UDim2.new(0, 70, 0, 70)
@@ -83,7 +84,7 @@ SideToggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 SideToggle.Text, SideToggle.TextColor3, SideToggle.Font = "CLOSE", Color3.new(1, 1, 1), Enum.Font.GothamBold
 SideToggle.TextSize = 14; SideToggle.ZIndex = 10 
 Instance.new("UICorner", SideToggle).CornerRadius = UDim.new(0, 20)
-Instance.new("UIStroke", SideToggle).Thickness = 3; Instance.new("UIStroke", SideToggle).Color = Color3.fromRGB(0, 120, 255)
+local STStroke = Instance.new("UIStroke", SideToggle); STStroke.Thickness = 3; STStroke.Color = Color3.fromRGB(0, 120, 255)
 
 SideToggle.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
@@ -100,31 +101,27 @@ local function createBtn(text, pos, color)
     return b
 end
 
-local Toggle = createBtn("STATUS: ACTIVE", UDim2.new(0.05, 0, 0.15, 0), Color3.fromRGB(0, 170, 0))
-local AVToggle = createBtn("SAFE MODE: ON", UDim2.new(0.05, 0, 0.27, 0), Color3.fromRGB(0, 170, 0))
-local AUToggle = createBtn("AUTO-UP: ON", UDim2.new(0.05, 0, 0.39, 0), Color3.fromRGB(0, 170, 0))
-local SFToggle = createBtn("SLOW FALL: ON", UDim2.new(0.05, 0, 0.51, 0), Color3.fromRGB(0, 170, 0))
+local Toggle = createBtn("STATUS: ACTIVE", UDim2.new(0.05, 0, 0.18, 0), Color3.fromRGB(0, 170, 0))
+local AVToggle = createBtn("SAFE MODE: ON", UDim2.new(0.05, 0, 0.30, 0), Color3.fromRGB(0, 170, 0))
+local AUToggle = createBtn("AUTO-UP: ON", UDim2.new(0.05, 0, 0.42, 0), Color3.fromRGB(0, 170, 0))
+local SFToggle = createBtn("SLOW FALL: ON", UDim2.new(0.05, 0, 0.54, 0), Color3.fromRGB(0, 170, 0))
 
 local Label = Instance.new("TextLabel", Main)
-Label.Size, Label.Position, Label.Text = UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0.65, 0), "Glide Distance: " .. dashDist
+Label.Size, Label.Position, Label.Text = UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0.68, 0), "Glide Distance: " .. dashDist
 Label.TextColor3, Label.BackgroundTransparency, Label.Font = Color3.new(1, 1, 1), 1, Enum.Font.GothamBold
 
-local Minus = createBtn("-", UDim2.new(0.15, 0, 0.78, 0), Color3.fromRGB(40, 40, 40))
+local Minus = createBtn("-", UDim2.new(0.15, 0, 0.80, 0), Color3.fromRGB(40, 40, 40))
 Minus.Size = UDim2.new(0, 55, 0, 55); Minus.TextSize = 30
-local Plus = createBtn("+", UDim2.new(0.6, 0, 0.78, 0), Color3.fromRGB(40, 40, 40))
+local Plus = createBtn("+", UDim2.new(0.6, 0, 0.80, 0), Color3.fromRGB(40, 40, 40))
 Plus.Size = UDim2.new(0, 55, 0, 55); Plus.TextSize = 30
 
--- Logic
+-- [[ LOGIC HANDLERS ]] --
 Toggle.MouseButton1Click:Connect(function()
     enabled = not enabled
     Toggle.Text = enabled and "STATUS: ACTIVE" or "STATUS: OFF"
     Toggle.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
     if not enabled then
         workspace.Gravity = originalGravity
-        local hum = player.Character and player.Character:FindFirstChild("Humanoid")
-        if hum then
-            if usesPower then hum.JumpPower = originalJumpValue else hum.JumpHeight = originalJumpValue end
-        end
     end
 end)
 
@@ -149,106 +146,54 @@ end)
 Minus.MouseButton1Click:Connect(function() dashDist = math.max(0, dashDist - 5) Label.Text = "Glide Distance: " .. dashDist end)
 Plus.MouseButton1Click:Connect(function() dashDist = dashDist + 5 Label.Text = "Glide Distance: " .. dashDist end)
 
--- [[ SLOW FALL LOGIC ]] --
+-- [[ FEATURES ]] --
 RunService.Heartbeat:Connect(function()
     if not slowFall or isDashing then return end
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart")
     if root and root.AssemblyLinearVelocity.Y < -20 then 
         root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, -15, root.AssemblyLinearVelocity.Z)
     end
 end)
 
--- [[ STRICT PLATFORM DETECTOR ]] --
 RunService.PostSimulation:Connect(function()
     if not autoUp or isDashing then return end
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChild("Humanoid")
+    local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart"); local hum = char and char:FindFirstChild("Humanoid")
     if not root or not hum or hum.MoveDirection.Magnitude == 0 then return end
-
-    local rayParam = RaycastParams.new()
-    rayParam.FilterDescendantsInstances = {char}
+    local rayParam = RaycastParams.new(); rayParam.FilterDescendantsInstances = {char}
     local forwardPos = root.Position + (hum.MoveDirection * 4)
-    
     local function checkPoint(pos)
         local r = workspace:Raycast(pos + Vector3.new(0, maxAutoUpDistance, 0), Vector3.new(0, -maxAutoUpDistance - 5, 0), rayParam)
-        if r and r.Position.Y > root.Position.Y + 1 and (r.Position.Y - root.Position.Y) <= maxAutoUpDistance then
-            return r
-        end
-        return nil
+        return (r and r.Position.Y > root.Position.Y + 1 and (r.Position.Y - root.Position.Y) <= maxAutoUpDistance) and r or nil
     end
-
-    local p1, p2, p3, p4, p5 = checkPoint(forwardPos), checkPoint(forwardPos + Vector3.new(2,0,0)), checkPoint(forwardPos + Vector3.new(-2,0,0)), checkPoint(forwardPos + Vector3.new(0,0,2)), checkPoint(forwardPos + Vector3.new(0,0,-2))
-
-    if p1 and p2 and p3 and p4 and p5 then
+    local p1 = checkPoint(forwardPos)
+    if p1 and checkPoint(forwardPos + Vector3.new(2,0,0)) and checkPoint(forwardPos + Vector3.new(-2,0,0)) then
         root.CFrame = CFrame.new(root.Position.X, p1.Position.Y + 3.5, root.Position.Z) * root.CFrame.Rotation
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then part.Transparency = (part.Name == "HumanoidRootPart") and 1 or 0 end
-        end
+        for _, part in pairs(char:GetDescendants()) do if part:IsA("BasePart") then part.Transparency = (part.Name == "HumanoidRootPart") and 1 or 0 end end
     end
 end)
 
--- [[ GLIDE ENGINE ]] --
 local function doDash()
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChild("Humanoid")
+    local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart"); local hum = char and char:FindFirstChild("Humanoid")
     if not root or not hum or not enabled or isDashing then return end
-    isDashing = true
-    local moveDir = (hum.MoveDirection.Magnitude > 0) and hum.MoveDirection or root.CFrame.LookVector
+    isDashing = true; local moveDir = (hum.MoveDirection.Magnitude > 0) and hum.MoveDirection or root.CFrame.LookVector
     local rayParam = RaycastParams.new(); rayParam.FilterDescendantsInstances = {char}
     local floorRay = workspace:Raycast(root.Position - Vector3.new(0, 2, 0), Vector3.new(0, -250, 0), rayParam)
-    local groundLevelY = floorRay and floorRay.Position.Y or root.Position.Y
-    local targetPosition = Vector3.new(root.Position.X + (moveDir.X * dashDist), groundLevelY + undergroundDepth, root.Position.Z + (moveDir.Z * dashDist))
-    
+    local targetPosition = Vector3.new(root.Position.X + (moveDir.X * dashDist), (floorRay and floorRay.Position.Y or root.Position.Y) + undergroundDepth, root.Position.Z + (moveDir.Z * dashDist))
     local connection = RunService.Stepped:Connect(function()
-        if char and root then
-            hum:ChangeState(Enum.HumanoidStateType.Physics)
-            root.AssemblyLinearVelocity = Vector3.zero 
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then 
-                    part.CanCollide = false 
-                    if part.Name ~= "HumanoidRootPart" then part.Transparency = 0.5 end
-                end
-            end
-        end
+        hum:ChangeState(Enum.HumanoidStateType.Physics); root.AssemblyLinearVelocity = Vector3.zero 
+        for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false; if v.Name ~= "HumanoidRootPart" then v.Transparency = 0.5 end end end
     end)
-    
-    workspace.Gravity = 0 
-    local glide = TS:Create(root, TweenInfo.new(dashTime, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {CFrame = CFrame.new(targetPosition) * root.CFrame.Rotation})
-    glide:Play()
-    
-    glide.Completed:Connect(function()
-        connection:Disconnect()
-        local scanRay = workspace:Raycast(root.Position + Vector3.new(0, 500, 0), Vector3.new(0, -600, 0), rayParam)
-        if antiVoid and not scanRay then root.CFrame = lastSafeCFrame + Vector3.new(0, 3, 0)
-        else
-            local finalY = scanRay and scanRay.Position.Y or groundLevelY
-            root.CFrame = CFrame.new(root.Position.X, finalY + 3, root.Position.Z) * root.CFrame.Rotation
-        end
-        workspace.Gravity = enabled and 2500 or originalGravity
-        hum:ChangeState(Enum.HumanoidStateType.Running)
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = true; part.Transparency = (part.Name == "HumanoidRootPart") and 1 or 0 end
-        end
+    workspace.Gravity = 0; local glide = TS:Create(root, TweenInfo.new(dashTime, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {CFrame = CFrame.new(targetPosition) * root.CFrame.Rotation})
+    glide:Play(); glide.Completed:Connect(function()
+        connection:Disconnect(); local scanRay = workspace:Raycast(root.Position + Vector3.new(0, 500, 0), Vector3.new(0, -600, 0), rayParam)
+        root.CFrame = (antiVoid and not scanRay) and (lastSafeCFrame + Vector3.new(0, 3, 0)) or (CFrame.new(root.Position.X, (scanRay and scanRay.Position.Y or root.Position.Y) + 3, root.Position.Z) * root.CFrame.Rotation)
+        workspace.Gravity = enabled and 2500 or originalGravity; hum:ChangeState(Enum.HumanoidStateType.Running)
+        for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = true; v.Transparency = (v.Name == "HumanoidRootPart") and 1 or 0 end end
         isDashing = false 
     end)
 end
 
-UIS.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.Space then
-        task.spawn(function()
-            while UIS:IsKeyDown(Enum.KeyCode.Space) and enabled do doDash() task.wait(dashTime - 0.02) end
-        end)
-    end
-end)
+UIS.InputBegan:Connect(function(input, gpe) if not gpe and input.KeyCode == Enum.KeyCode.Space then task.spawn(function() while UIS:IsKeyDown(Enum.KeyCode.Space) and enabled do doDash() task.wait(dashTime - 0.02) end end) end end)
 UIS.JumpRequest:Connect(function() if not UIS:IsKeyDown(Enum.KeyCode.Space) then doDash() end end)
-RunService.Heartbeat:Connect(function()
-    local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart")
-    if root and not isDashing then
-        local ray = workspace:Raycast(root.Position, Vector3.new(0, -30, 0))
-        if ray then lastSafeCFrame = root.CFrame end
-    end
-end)
+RunService.Heartbeat:Connect(function() local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart") if root and not isDashing and workspace:Raycast(root.Position, Vector3.new(0, -30, 0)) then lastSafeCFrame = root.CFrame end end)
 
