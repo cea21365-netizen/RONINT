@@ -34,30 +34,24 @@ captureOriginals()
 
 -- [[ GUI SECTION ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui); ScreenGui.Name = "SmoothSurfUI"
-
 local Main = Instance.new("Frame", ScreenGui)
 Main.Size, Main.Position = UDim2.new(0, 200, 0, 220), UDim2.new(0.5, -100, 0.7, 0)
 Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Main.Active = true; Main.Draggable = true
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
 
--- RONINT HEADER
 local Header = Instance.new("Frame", Main)
 Header.Size, Header.Position = UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0, 0)
 Header.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-local HeaderCorner = Instance.new("UICorner", Header)
-HeaderCorner.CornerRadius = UDim.new(0, 12)
-
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 12)
 local Cover = Instance.new("Frame", Header)
 Cover.Size, Cover.Position = UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 0, 0.5, 0)
-Cover.BackgroundColor3 = Header.BackgroundColor3
-Cover.BorderSizePixel = 0
+Cover.BackgroundColor3 = Header.BackgroundColor3; Cover.BorderSizePixel = 0
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size, Title.Text = UDim2.new(1, 0, 1, 0), "RONINT"
 Title.TextColor3, Title.BackgroundTransparency = Color3.new(1, 1, 1), 1
 Title.Font, Title.TextSize = Enum.Font.GothamBold, 16
 
--- SIDE TOGGLE BUTTON
 local SideToggle = Instance.new("TextButton", ScreenGui)
 SideToggle.Size, SideToggle.Position = UDim2.new(0, 40, 0, 40), UDim2.new(1, -50, 0.5, -20)
 SideToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -69,7 +63,6 @@ SideToggle.MouseButton1Click:Connect(function()
     SideToggle.BackgroundColor3 = Main.Visible and Color3.fromRGB(60, 60, 60) or Color3.fromRGB(0, 0, 0)
 end)
 
--- CONTROLS
 local Toggle = Instance.new("TextButton", Main)
 Toggle.Size, Toggle.Position = UDim2.new(0.8, 0, 0, 30), UDim2.new(0.1, 0, 0.18, 0)
 Toggle.Text, Toggle.BackgroundColor3 = "STATUS: ACTIVE", Color3.fromRGB(0, 170, 0)
@@ -98,12 +91,10 @@ Plus.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 Plus.TextColor3, Plus.Font = Color3.new(1, 1, 1), Enum.Font.GothamBold
 Instance.new("UICorner", Plus).CornerRadius = UDim.new(0, 12)
 
--- [[ ACTION LOGIC ]] --
 Toggle.MouseButton1Click:Connect(function()
     enabled = not enabled
     Toggle.Text = enabled and "STATUS: ACTIVE" or "STATUS: OFF"
     Toggle.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
-    
     if not enabled then
         workspace.Gravity = originalGravity
         local hum = player.Character and player.Character:FindFirstChild("Humanoid")
@@ -133,7 +124,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- [[ ENGINE LOGIC ]] --
 task.spawn(function()
     while task.wait(0.1) do
         if enabled then
@@ -145,19 +135,25 @@ task.spawn(function()
     end
 end)
 
+-- [[ ENGINE LOGIC WITH HIGHER FLOOR DETECTION ]] --
 local function doDash()
     local char = player.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
     if not root or not hum or not enabled or isDashing then return end
     isDashing = true
+    
     local moveDir = hum.MoveDirection
     if moveDir.Magnitude == 0 then moveDir = root.CFrame.LookVector end
+    
     local rayParam = RaycastParams.new()
     rayParam.FilterDescendantsInstances = {char}
     rayParam.FilterType = Enum.RaycastFilterType.Exclude
-    local floorRay = workspace:Raycast(root.Position + Vector3.new(0, 10, 0), Vector3.new(0, -500, 0), rayParam)
+    
+    -- Ground Check (Current Surface)
+    local floorRay = workspace:Raycast(root.Position - Vector3.new(0, 2, 0), Vector3.new(0, -250, 0), rayParam)
     local groundLevelY = floorRay and floorRay.Position.Y or root.Position.Y
+    
     local targetPosition = Vector3.new(root.Position.X + (moveDir.X * dashDist), groundLevelY + undergroundDepth, root.Position.Z + (moveDir.Z * dashDist))
     local targetCF = CFrame.new(targetPosition) * root.CFrame.Rotation
     
@@ -189,28 +185,30 @@ local function doDash()
         connection:Disconnect()
         camera.CameraSubject = hum
         hum.HipHeight = originalHipHeight
-        local endRay = workspace:Raycast(root.Position + Vector3.new(0, 40, 0), Vector3.new(0, -70, 0), rayParam)
         
-        if antiVoid and not endRay then
+        -- [[ DUAL SCAN FOR HIGHER FLOORS ]] --
+        -- Scans from 40 studs above downwards to find any high ground
+        local scanRay = workspace:Raycast(root.Position + Vector3.new(0, 40, 0), Vector3.new(0, -100, 0), rayParam)
+        
+        if antiVoid and not scanRay then
             root.CFrame = lastSafeCFrame + Vector3.new(0, 3, 0)
             hum.PlatformStand = false
             workspace.Gravity = enabled and 2500 or originalGravity
             hum:ChangeState(Enum.HumanoidStateType.Running)
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                    part.Transparency = (part.Name == "HumanoidRootPart") and 1 or 0
-                end
-            end
         elseif not UIS:IsKeyDown(Enum.KeyCode.Space) then
-            local finalY = endRay and endRay.Position.Y or groundLevelY
+            local finalY = scanRay and scanRay.Position.Y or groundLevelY
             root.CFrame = CFrame.new(root.Position.X, finalY + 3, root.Position.Z) * root.CFrame.Rotation
             hum.PlatformStand = false
             workspace.Gravity = enabled and 2500 or originalGravity
             hum:ChangeState(Enum.HumanoidStateType.Running)
             for _, part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then
-                    if part.Name ~= "HumanoidRootPart" then part.CanCollide = true part.Transparency = 0 else part.Transparency = 1 end
+                    if part.Name ~= "HumanoidRootPart" then 
+                        part.CanCollide = true 
+                        part.Transparency = 0 
+                    else 
+                        part.Transparency = 1 
+                    end
                 end
             end
         end
@@ -219,8 +217,7 @@ local function doDash()
 end
 
 UIS.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.Space then
+    if not gpe and input.KeyCode == Enum.KeyCode.Space then
         task.spawn(function()
             while UIS:IsKeyDown(Enum.KeyCode.Space) and enabled do
                 doDash()
@@ -235,3 +232,4 @@ UIS.JumpRequest:Connect(function()
         doDash()
     end
 end)
+
