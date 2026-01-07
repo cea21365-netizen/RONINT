@@ -44,30 +44,35 @@ Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Main.Active = true; Main.Dra
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 15)
 Instance.new("UIStroke", Main).Color = Color3.fromRGB(40, 40, 40)
 
--- Header with Blue Background
+-- Header with White Border
 local Header = Instance.new("Frame", Main)
 Header.Size, Header.Position = UDim2.new(1, 0, 0, 45), UDim2.new(0, 0, 0, 0)
-Header.BackgroundColor3 = Color3.fromRGB(0, 120, 255) -- Solid Blue Background
+Header.BackgroundColor3 = Color3.fromRGB(0, 120, 255) 
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 15)
 
--- Bottom corner fix for Header (makes only top rounded)
+local HeaderBorder = Instance.new("UIStroke", Header)
+HeaderBorder.Thickness = 2
+HeaderBorder.Color = Color3.new(1, 1, 1) -- White Border
+HeaderBorder.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
 local CornerFix = Instance.new("Frame", Header)
 CornerFix.Size, CornerFix.Position = UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 0, 0.5, 0)
 CornerFix.BackgroundColor3 = Header.BackgroundColor3; CornerFix.BorderSizePixel = 0
+CornerFix.ZIndex = 0
 
--- Custom Colored Title "RONINT" with NO spacing
+-- Custom Colored Title "RONINT" with Tightest Spacing
 local titleContainer = Instance.new("Frame", Header)
 titleContainer.Size = UDim2.new(1, 0, 1, 0); titleContainer.BackgroundTransparency = 1
 local layout = Instance.new("UIListLayout", titleContainer)
 layout.FillDirection = Enum.FillDirection.Horizontal
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Center
-layout.Padding = UDim.new(0, 0) -- No spacing between letters
+layout.Padding = UDim.new(0, -2) -- Overlapping letters for maximum closeness
 
 local function addLetter(char, color)
     local l = Instance.new("TextLabel", titleContainer)
-    l.Text = char; l.TextColor3 = color; l.Font = Enum.Font.GothamBold; l.TextSize = 26
-    l.BackgroundTransparency = 1; l.Size = UDim2.new(0, 20, 1, 0)
+    l.Text = char; l.TextColor3 = color; l.Font = Enum.Font.GothamBold; l.TextSize = 28
+    l.BackgroundTransparency = 1; l.Size = UDim2.new(0, 18, 1, 0)
 end
 
 addLetter("R", Color3.fromRGB(255, 0, 0))      
@@ -115,14 +120,12 @@ Minus.Size = UDim2.new(0, 55, 0, 55); Minus.TextSize = 30
 local Plus = createBtn("+", UDim2.new(0.6, 0, 0.80, 0), Color3.fromRGB(40, 40, 40))
 Plus.Size = UDim2.new(0, 55, 0, 55); Plus.TextSize = 30
 
--- [[ LOGIC HANDLERS ]] --
+-- Logic Handlers
 Toggle.MouseButton1Click:Connect(function()
     enabled = not enabled
     Toggle.Text = enabled and "STATUS: ACTIVE" or "STATUS: OFF"
     Toggle.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
-    if not enabled then
-        workspace.Gravity = originalGravity
-    end
+    if not enabled then workspace.Gravity = originalGravity end
 end)
 
 AVToggle.MouseButton1Click:Connect(function()
@@ -146,7 +149,7 @@ end)
 Minus.MouseButton1Click:Connect(function() dashDist = math.max(0, dashDist - 5) Label.Text = "Glide Distance: " .. dashDist end)
 Plus.MouseButton1Click:Connect(function() dashDist = dashDist + 5 Label.Text = "Glide Distance: " .. dashDist end)
 
--- [[ FEATURES ]] --
+-- Feature Logic
 RunService.Heartbeat:Connect(function()
     if not slowFall or isDashing then return end
     local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart")
