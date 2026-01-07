@@ -12,7 +12,7 @@ local antiVoid = true
 local autoUp = true 
 local slowFall = true 
 local dashDist = 35
-local dashTime = 0.22 
+local dashTime = 0.05 
 local isDashing = false 
 local undergroundDepth = -30 
 local lastSafeCFrame = CFrame.new(0, 10, 0)
@@ -29,89 +29,85 @@ Main.Size, Main.Position = UDim2.new(0, 240, 0, 360), UDim2.new(0.5, -120, 0.4, 
 Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Main.Active = true; Main.Draggable = true
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 15)
 
--- RAINBOW BORDER FOR MAIN GUI
+-- Main Rainbow Border
 local MainRainbow = Instance.new("UIStroke", Main)
-MainRainbow.Thickness = 3
+MainRainbow.Thickness = 4
 MainRainbow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-MainRainbow.Transparency = 0 -- Starts visible
+MainRainbow.ZIndex = 5
 
 -- Header
 local Header = Instance.new("Frame", Main)
 Header.Size, Header.Position = UDim2.new(1, 0, 0, 45), UDim2.new(0, 0, 0, 0)
 Header.BackgroundColor3 = Color3.fromRGB(0, 120, 255) 
 Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 15)
-
 local HeaderBorder = Instance.new("UIStroke", Header)
-HeaderBorder.Thickness = 2
-HeaderBorder.Color = Color3.new(1, 1, 1) 
-
+HeaderBorder.Thickness = 2; HeaderBorder.Color = Color3.new(1, 1, 1) 
 local CornerFix = Instance.new("Frame", Header)
 CornerFix.Size, CornerFix.Position = UDim2.new(1, 0, 0.5, 0), UDim2.new(0, 0, 0.5, 0)
 CornerFix.BackgroundColor3 = Header.BackgroundColor3; CornerFix.BorderSizePixel = 0
 
--- Colored Title "RONINT"
+-- Title Setup
 local titleContainer = Instance.new("Frame", Header)
 titleContainer.Size = UDim2.new(1, 0, 1, 0); titleContainer.BackgroundTransparency = 1
 local layout = Instance.new("UIListLayout", titleContainer)
 layout.FillDirection, layout.HorizontalAlignment, layout.VerticalAlignment = Enum.FillDirection.Horizontal, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Center
 layout.Padding = UDim.new(0, -2) 
 
+local textStrokes = {}
 local function addLetter(char, color)
     local l = Instance.new("TextLabel", titleContainer)
     l.Text, l.TextColor3, l.Font, l.TextSize = char, color, Enum.Font.GothamBold, 28
     l.BackgroundTransparency, l.Size = 1, UDim2.new(0, 18, 1, 0)
+    local s = Instance.new("UIStroke", l); s.Thickness = 1.5; table.insert(textStrokes, s)
 end
-addLetter("R", Color3.fromRGB(255, 0, 0))      
-addLetter("O", Color3.fromRGB(255, 127, 0))    
-addLetter("N", Color3.fromRGB(57, 255, 20))    
-addLetter("I", Color3.fromRGB(255, 255, 240))  
-addLetter("N", Color3.fromRGB(57, 255, 20))    
-addLetter("T", Color3.fromRGB(64, 224, 208))   
+
+addLetter("R", Color3.fromRGB(255, 0, 0)); addLetter("O", Color3.fromRGB(255, 127, 0))    
+addLetter("N", Color3.fromRGB(57, 255, 20)); addLetter("I", Color3.fromRGB(255, 255, 240))  
+addLetter("N", Color3.fromRGB(57, 255, 20)); addLetter("T", Color3.fromRGB(64, 224, 208))   
 
 -- [[ SIDE TOGGLE ]] --
 local SideToggle = Instance.new("TextButton", ScreenGui)
 SideToggle.Size, SideToggle.Position = UDim2.new(0, 70, 0, 70), UDim2.new(1, -80, 0.5, -35)
 SideToggle.BackgroundColor3, SideToggle.TextColor3 = Color3.fromRGB(30, 30, 30), Color3.new(1, 1, 1)
 SideToggle.Text, SideToggle.Font, SideToggle.TextSize = "CLOSE", Enum.Font.GothamBold, 14
-SideToggle.ZIndex = 10 
-Instance.new("UICorner", SideToggle).CornerRadius = UDim.new(0, 20)
+SideToggle.ZIndex = 10; Instance.new("UICorner", SideToggle).CornerRadius = UDim.new(0, 20)
 
-local STStroke = Instance.new("UIStroke", SideToggle)
-STStroke.Thickness = 4
-STStroke.Color = Color3.fromRGB(255, 0, 0) 
+-- Rainbow Border for Toggle Button
+local STRainbow = Instance.new("UIStroke", SideToggle)
+STRainbow.Thickness = 4
+STRainbow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 SideToggle.MouseButton1Click:Connect(function()
     Main.Visible = not Main.Visible
-    if Main.Visible then
-        SideToggle.Text = "CLOSE"
-        STStroke.Color = Color3.fromRGB(255, 0, 0)
-    else
-        SideToggle.Text = "OPEN"
-        STStroke.Color = Color3.fromRGB(0, 255, 0)
-    end
+    SideToggle.Text = Main.Visible and "CLOSE" or "OPEN"
 end)
 
--- [[ RAINBOW & PULSE ANIMATION ]] --
+-- [[ GLOBAL RAINBOW SYNC ENGINE ]] --
 task.spawn(function()
     local hue = 0
     while true do
-        hue = hue + (1/300) -- Speed of color cycle
-        if hue > 1 then hue = 0 end
-        local rainbowColor = Color3.fromHSV(hue, 1, 1)
-        MainRainbow.Color = rainbowColor
+        hue = (hue + (1/200)) % 1
+        local c = Color3.fromHSV(hue, 1, 1)
         
-        -- Pulsing Logic
+        -- Apply Color
+        MainRainbow.Color = c
+        STRainbow.Color = c
+        for _, s in pairs(textStrokes) do s.Color = c end
+        
+        -- Pulse & Visibility Logic
         if Main.Visible then
-            local pulse = (math.sin(tick() * 5) + 1) / 2 -- Range 0 to 1
-            MainRainbow.Transparency = pulse * 0.5 -- Pulses between 0 and 0.5 transparency
+            local pulse = ((math.sin(tick() * 5) + 1) / 4)
+            MainRainbow.Transparency = pulse
+            STRainbow.Transparency = pulse -- Rainbow border visible and pulsing when open
         else
-            MainRainbow.Transparency = 1 -- Invisible when closed
+            MainRainbow.Transparency = 1
+            STRainbow.Transparency = 1 -- Rainbow border disappears when closed
         end
         RunService.RenderStepped:Wait()
     end
 end)
 
--- [[ BUTTON BUILDER ]] --
+-- [[ REMAINDER OF FUNCTIONAL SCRIPT ]] --
 local function createBtn(text, pos, color)
     local b = Instance.new("TextButton", Main)
     b.Size, b.Position = UDim2.new(0.9, 0, 0, 35), pos
@@ -125,71 +121,11 @@ local Toggle = createBtn("STATUS: ACTIVE", UDim2.new(0.05, 0, 0.18, 0), Color3.f
 local AVToggle = createBtn("SAFE MODE: ON", UDim2.new(0.05, 0, 0.30, 0), Color3.fromRGB(0, 170, 0))
 local AUToggle = createBtn("AUTO-UP: ON", UDim2.new(0.05, 0, 0.42, 0), Color3.fromRGB(0, 170, 0))
 local SFToggle = createBtn("SLOW FALL: ON", UDim2.new(0.05, 0, 0.54, 0), Color3.fromRGB(0, 170, 0))
-
-local Label = Instance.new("TextLabel", Main)
-Label.Size, Label.Position, Label.Text = UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0.68, 0), "Glide Distance: " .. dashDist
+local Label = Instance.new("TextLabel", Main); Label.Size, Label.Position, Label.Text = UDim2.new(1, 0, 0, 30), UDim2.new(0, 0, 0.68, 0), "Glide Distance: " .. dashDist
 Label.TextColor3, Label.BackgroundTransparency, Label.Font = Color3.new(1, 1, 1), 1, Enum.Font.GothamBold
+local Minus = createBtn("-", UDim2.new(0.15, 0, 0.80, 0), Color3.fromRGB(40, 40, 40)); Minus.Size, Minus.TextSize = UDim2.new(0, 55, 0, 55), 30
+local Plus = createBtn("+", UDim2.new(0.6, 0, 0.80, 0), Color3.fromRGB(40, 40, 40)); Plus.Size, Plus.TextSize = UDim2.new(0, 55, 0, 55), 30
 
-local Minus = createBtn("-", UDim2.new(0.15, 0, 0.80, 0), Color3.fromRGB(40, 40, 40))
-Minus.Size = UDim2.new(0, 55, 0, 55); Minus.TextSize = 30
-local Plus = createBtn("+", UDim2.new(0.6, 0, 0.80, 0), Color3.fromRGB(40, 40, 40))
-Plus.Size = UDim2.new(0, 55, 0, 55); Plus.TextSize = 30
-
--- [[ FUNCTIONAL LOGIC ]] --
-Toggle.MouseButton1Click:Connect(function()
-    enabled = not enabled
-    Toggle.Text = enabled and "STATUS: ACTIVE" or "STATUS: OFF"
-    Toggle.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
-    if not enabled then workspace.Gravity = 196.2 end
-end)
-
-AVToggle.MouseButton1Click:Connect(function()
-    antiVoid = not antiVoid
-    AVToggle.Text = antiVoid and "SAFE MODE: ON" or "SAFE MODE: OFF"
-    AVToggle.BackgroundColor3 = antiVoid and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
-end)
-
-AUToggle.MouseButton1Click:Connect(function()
-    autoUp = not autoUp
-    AUToggle.Text = autoUp and "AUTO-UP: ON" or "AUTO-UP: OFF"
-    AUToggle.BackgroundColor3 = autoUp and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
-end)
-
-SFToggle.MouseButton1Click:Connect(function()
-    slowFall = not slowFall
-    SFToggle.Text = slowFall and "SLOW FALL: ON" or "SLOW FALL: OFF"
-    SFToggle.BackgroundColor3 = slowFall and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
-end)
-
-Minus.MouseButton1Click:Connect(function() dashDist = math.max(0, dashDist - 5) Label.Text = "Glide Distance: " .. dashDist end)
-Plus.MouseButton1Click:Connect(function() dashDist = dashDist + 5 Label.Text = "Glide Distance: " .. dashDist end)
-
--- Feature Logic (Slow Fall & Auto Up)
-RunService.Heartbeat:Connect(function()
-    if not slowFall or isDashing then return end
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if root and root.AssemblyLinearVelocity.Y < -20 then 
-        root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, -15, root.AssemblyLinearVelocity.Z)
-    end
-end)
-
-RunService.PostSimulation:Connect(function()
-    if not autoUp or isDashing then return end
-    local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart"); local hum = char and char:FindFirstChild("Humanoid")
-    if not root or not hum or hum.MoveDirection.Magnitude == 0 then return end
-    local rayParam = RaycastParams.new(); rayParam.FilterDescendantsInstances = {char}
-    local forwardPos = root.Position + (hum.MoveDirection * 4)
-    local function checkPoint(pos)
-        local r = workspace:Raycast(pos + Vector3.new(0, maxAutoUpDistance, 0), Vector3.new(0, -maxAutoUpDistance - 5, 0), rayParam)
-        return (r and r.Position.Y > root.Position.Y + 1 and (r.Position.Y - root.Position.Y) <= maxAutoUpDistance) and r or nil
-    end
-    local p1 = checkPoint(forwardPos)
-    if p1 and checkPoint(forwardPos + Vector3.new(2,0,0)) and checkPoint(forwardPos + Vector3.new(-2,0,0)) then
-        root.CFrame = CFrame.new(root.Position.X, p1.Position.Y + 3.5, root.Position.Z) * root.CFrame.Rotation
-    end
-end)
-
--- Glide Engine
 local function doDash()
     local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart"); local hum = char and char:FindFirstChild("Humanoid")
     if not root or not hum or not enabled or isDashing then return end
@@ -201,7 +137,7 @@ local function doDash()
         hum:ChangeState(Enum.HumanoidStateType.Physics); root.AssemblyLinearVelocity = Vector3.zero 
         for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false; if v.Name ~= "HumanoidRootPart" then v.Transparency = 0.5 end end end
     end)
-    workspace.Gravity = 0; local glide = TS:Create(root, TweenInfo.new(dashTime, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {CFrame = CFrame.new(targetPosition) * root.CFrame.Rotation})
+    workspace.Gravity = 0; local glide = TS:Create(root, TweenInfo.new(dashTime, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPosition) * root.CFrame.Rotation})
     glide:Play(); glide.Completed:Connect(function()
         conn:Disconnect(); local scanRay = workspace:Raycast(root.Position + Vector3.new(0, 500, 0), Vector3.new(0, -600, 0), rayParam)
         root.CFrame = (antiVoid and not scanRay) and (lastSafeCFrame + Vector3.new(0, 3, 0)) or (CFrame.new(root.Position.X, (scanRay and scanRay.Position.Y or root.Position.Y) + 3, root.Position.Z) * root.CFrame.Rotation)
@@ -211,6 +147,12 @@ local function doDash()
     end)
 end
 
-UIS.InputBegan:Connect(function(input, gpe) if not gpe and input.KeyCode == Enum.KeyCode.Space then task.spawn(function() while UIS:IsKeyDown(Enum.KeyCode.Space) and enabled do doDash() task.wait(dashTime - 0.02) end end) end end)
-UIS.JumpRequest:Connect(function() if not UIS:IsKeyDown(Enum.KeyCode.Space) then doDash() end end)
-RunService.Heartbeat:Connect(function() local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart") if root and not isDashing and workspace:Raycast(root.Position, Vector3.new(0, -30, 0)) then lastSafeCFrame = root.CFrame end end)
+UIS.InputBegan:Connect(function(input, gpe) if not gpe and input.KeyCode == Enum.KeyCode.Space then task.spawn(function() while UIS:IsKeyDown(Enum.KeyCode.Space) and enabled do doDash() RunService.Heartbeat:Wait() end end) end end)
+UIS.JumpRequest:Connect(function() if enabled then doDash() end end)
+Toggle.MouseButton1Click:Connect(function() enabled = not enabled Toggle.Text = enabled and "STATUS: ACTIVE" or "STATUS: OFF" Toggle.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0) end)
+AVToggle.MouseButton1Click:Connect(function() antiVoid = not antiVoid AVToggle.Text = antiVoid and "SAFE MODE: ON" or "SAFE MODE: OFF" AVToggle.BackgroundColor3 = antiVoid and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0) end)
+AUToggle.MouseButton1Click:Connect(function() autoUp = not autoUp AUToggle.Text = autoUp and "AUTO-UP: ON" or "AUTO-UP: OFF" AUToggle.BackgroundColor3 = autoUp and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0) end)
+SFToggle.MouseButton1Click:Connect(function() slowFall = not slowFall SFToggle.Text = slowFall and "SLOW FALL: ON" or "SLOW FALL: OFF" SFToggle.BackgroundColor3 = slowFall and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0) end)
+Minus.MouseButton1Click:Connect(function() dashDist = math.max(0, dashDist - 5) Label.Text = "Glide Distance: " .. dashDist end)
+Plus.MouseButton1Click:Connect(function() dashDist = dashDist + 5 Label.Text = "Glide Distance: " .. dashDist end)
+RunService.Heartbeat:Connect(function() if not isDashing and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then local root = player.Character.HumanoidRootPart if workspace:Raycast(root.Position, Vector3.new(0, -30, 0)) then lastSafeCFrame = root.CFrame end end end)
