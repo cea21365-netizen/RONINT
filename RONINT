@@ -199,4 +199,3 @@ end
 UIS.InputBegan:Connect(function(input, gpe) if not gpe and input.KeyCode == Enum.KeyCode.Space then task.spawn(function() while UIS:IsKeyDown(Enum.KeyCode.Space) and enabled do doDash() task.wait(dashTime - 0.02) end end) end end)
 UIS.JumpRequest:Connect(function() if not UIS:IsKeyDown(Enum.KeyCode.Space) then doDash() end end)
 RunService.Heartbeat:Connect(function() local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart") if root and not isDashing and workspace:Raycast(root.Position, Vector3.new(0, -30, 0)) then lastSafeCFrame = root.CFrame end end)
-
