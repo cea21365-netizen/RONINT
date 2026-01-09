@@ -6,11 +6,16 @@ local RunService = game:GetService("RunService")
 local TS = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 
+-- Capture Original Settings
+local origGrav = workspace.Gravity
+local origJumpPower = 50
+local origJumpHeight = 7.2
+
 -- Variables
 local enabled, antiVoid, autoUp, slowFall = true, true, true, true
 local dashDist, isDashing = 45, false
 local rapidGlide = false
-local lastSafeCFrame = nil
+local lastSafeCFrame = nil 
 
 -- [[ THE FULL-SCREEN SPLASH ]] --
 local SplashGui = Instance.new("ScreenGui", CoreGui)
@@ -26,11 +31,10 @@ local SplashLabel = Instance.new("TextLabel", SplashBG)
 SplashLabel.Size = UDim2.new(1, 0, 1, 0)
 SplashLabel.BackgroundTransparency = 1
 SplashLabel.Font = Enum.Font.GothamBold
-SplashLabel.TextSize = 35 -- Solid size, no zoom
+SplashLabel.TextSize = 35 
 SplashLabel.TextColor3 = Color3.new(1, 1, 1)
 SplashLabel.Text = "made by Friendshipcreate"
 SplashLabel.RichText = true
-SplashLabel.TextTransparency = 0 -- Start visible
 
 -- [[ MAIN GUI SETUP ]] --
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
@@ -82,7 +86,7 @@ P_Label.Size = UDim2.new(1, 0, 1, 0); P_Label.BackgroundTransparency = 1
 P_Label.Text, P_Label.TextColor3, P_Label.Font, P_Label.TextSize = "P", Color3.new(1, 0, 0), Enum.Font.GothamBold, 28
 local P_Stroke = Instance.new("UIStroke", P_Label)
 P_Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
-P_Stroke.Thickness, P_Stroke.Color = 3, Color3.new(0, 0, 0) -- BLACK OUTLINE
+P_Stroke.Thickness, P_Stroke.Color = 3, Color3.new(0, 0, 0) 
 
 local ToggleBorderFrame = Instance.new("Frame", ControlGroup)
 ToggleBorderFrame.Name = "OuterBorder"
@@ -134,10 +138,8 @@ task.spawn(function()
         SplashLabel.Text = 'made by <font color="#'..rainbowHex..'">Friendshipcreate</font>'
         RunService.RenderStepped:Wait()
     end
-
     TS:Create(SplashBG, TweenInfo.new(1), {BackgroundTransparency = 1}):Play()
     TS:Create(SplashLabel, TweenInfo.new(1), {TextTransparency = 1}):Play()
-    
     task.wait(1)
     ScreenGui.Enabled = true
     fadeGUI(true)
@@ -155,8 +157,15 @@ local function doBlink()
     isDashing = true
     local moveDir = (char.Humanoid.MoveDirection.Magnitude > 0) and char.Humanoid.MoveDirection or root.CFrame.LookVector
     local targetPos = root.Position + (moveDir * dashDist)
-    local scanRay = workspace:Raycast(targetPos + Vector3.new(0, 500, 0), Vector3.new(0, -1000, 0))
-    if scanRay then root.Anchored = true; root.CFrame = CFrame.new(scanRay.Position + Vector3.new(0, 3, 0)) * root.CFrame.Rotation; task.wait(0.01); root.Anchored = false end
+    
+    -- Dash Terrain Correction with 15-unit head clearance
+    local scanRay = workspace:Raycast(targetPos + Vector3.new(0, 15, 0), Vector3.new(0, -30, 0))
+    if scanRay then 
+        root.Anchored = true
+        root.CFrame = CFrame.new(scanRay.Position + Vector3.new(0, 3, 0)) * root.CFrame.Rotation
+        task.wait(0.01)
+        root.Anchored = false 
+    end
     task.wait(0.05); isDashing = false 
 end
 
@@ -195,10 +204,52 @@ task.spawn(function()
     while true do
         RunService.Heartbeat:Wait()
         local char = player.Character; local root = char and char:FindFirstChild("HumanoidRootPart"); local hum = char and char:FindFirstChild("Humanoid")
-        if char and root and hum and enabled then
-            workspace.Gravity = 10000 
-            if hum.UseJumpPower then hum.JumpPower = 0.01 else hum.JumpHeight = 0.01 end
-            if autoUp then root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)) end
-        elseif not enabled then workspace.Gravity = 196.2 end
+        
+        if char and root and hum then
+            -- Independent Anti-Void
+            if antiVoid then
+                if root.Position.Y < -50 then 
+                    if lastSafeCFrame then 
+                        root.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                        root.CFrame = lastSafeCFrame 
+                    end
+                else
+                    local floorRay = workspace:Raycast(root.Position, Vector3.new(0, -15, 0))
+                    if floorRay then lastSafeCFrame = root.CFrame end
+                end
+            end
+
+            -- Independent Auto-Up (Updated to 15 Units)
+            if autoUp then
+                local look = root.CFrame.LookVector
+                local wallRay = workspace:Raycast(root.Position, look * 2.5)
+                if wallRay then
+                    -- Scans up to 15 units above current position
+                    local topCheckPos = root.Position + (look * 3) + Vector3.new(0, 15, 0)
+                    local floorDetect = workspace:Raycast(topCheckPos, Vector3.new(0, -17, 0))
+                    if floorDetect then
+                        root.CFrame = CFrame.new(floorDetect.Position + Vector3.new(0, 3, 0)) * root.CFrame.Rotation
+                    end
+                end
+            end
+
+            -- Status Control
+            if enabled then
+                if slowFall and root.AssemblyLinearVelocity.Y < -5 then
+                    workspace.Gravity = 50 
+                    root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, -15, root.AssemblyLinearVelocity.Z)
+                else
+                    workspace.Gravity = 10000 
+                end
+                if hum.UseJumpPower then hum.JumpPower = 0.01 else hum.JumpHeight = 0.01 end
+            else
+                workspace.Gravity = origGrav
+                if hum.UseJumpPower then hum.JumpPower = origJumpPower else hum.JumpHeight = origJumpHeight end
+                
+                if slowFall and root.AssemblyLinearVelocity.Y < -10 then
+                    root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, -15, root.AssemblyLinearVelocity.Z)
+                end
+            end
+        end
     end
 end)
